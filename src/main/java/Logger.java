@@ -9,6 +9,14 @@ public class Logger {
 
     // TODO: convert to singleton
 
+    public PrintWriter getErrorWriter() {
+        return errorWriter;
+    }
+
+    public PrintWriter getLogWriter() {
+        return logWriter;
+    }
+
     public Logger() {
         FileWriter errorFileWriter, logFileWriter;
         try {
@@ -26,8 +34,9 @@ public class Logger {
         logWriter.close();
     }
 
-    public void writeJavaError(String log) {
-        errorWriter.println(log);
+    public void writeJavaError(Exception e) {
+        e.printStackTrace(errorWriter);
+        errorWriter.flush();
         errorWriter.close();
     }
 }

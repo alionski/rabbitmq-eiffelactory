@@ -22,13 +22,13 @@ public class RabbitConfig {
             hostname = prop.getProperty("hostname");
             port = Integer.valueOf(prop.getProperty("port"));
         } catch (IOException e) {
-            logger.writeJavaError(e.toString());
+            logger.writeJavaError(e);
         } finally {
             if (config != null) {
                 try {
                     config.close();
                 } catch (IOException e) {
-                    logger.writeJavaError(e.toString());
+                    logger.writeJavaError(e);
                 }
             }
         }

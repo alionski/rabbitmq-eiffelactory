@@ -2,6 +2,8 @@ import com.rabbitmq.client.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
@@ -12,9 +14,9 @@ import java.util.concurrent.TimeoutException;
  */
 public class RecvMQ {
 
-    private final static String QUEUE_NAME = "eiffelactory";
-    private final static String EXCHANGE_NAME = "eiffel";
-    private final static String EXCHANGE_TYPE = "fanout";
+    private final static String QUEUE_NAME = "alenah.eiffelactory.dev";
+    private final static String EXCHANGE_NAME = "eiffel.public";
+    private final static String EXCHANGE_TYPE = "topic";
     private volatile boolean alive = true;
     private Logger logger = new Logger();
 
@@ -33,19 +35,19 @@ public class RecvMQ {
                     receiveMessage(consumerTag, delivery);
                     if (!alive) {
                         try {
-                            channel.queueUnbind(QUEUE_NAME, EXCHANGE_NAME, "");
+                            channel.queueUnbind(QUEUE_NAME, EXCHANGE_NAME, "#");
                             channel.close();
                             connection.close();
                         } catch (TimeoutException e) {
-                            logger.writeJavaError(e.toString());
+                            logger.writeJavaError(e);
                         }
                     }
                 };
 
                 channel.basicConsume(QUEUE_NAME, true, deliverCallback, consumerTag -> { });
 
-            } catch (IOException | TimeoutException e) {
-                logger.writeJavaError(e.toString());
+            } catch (IOException | TimeoutException | KeyManagementException | NoSuchAlgorithmException e) {
+                logger.writeJavaError(e);
             }
         }).start();
     }
@@ -67,7 +69,10 @@ public class RecvMQ {
      * @throws IOException
      * @throws TimeoutException
      */
-    private Connection initConnection() throws IOException, TimeoutException {
+    private Connection initConnection() throws IOException,
+                                                TimeoutException,
+                                                KeyManagementException,
+                                                NoSuchAlgorithmException {
         RabbitConfig rabbitConfig = new RabbitConfig(logger);
         ConnectionFactory factory = new ConnectionFactory();
         factory.setUsername(rabbitConfig.getUsername());
@@ -75,6 +80,7 @@ public class RecvMQ {
         factory.setVirtualHost(rabbitConfig.getVhost());
         factory.setHost(rabbitConfig.getHostname());
         factory.setPort(rabbitConfig.getPort());
+        factory.useSslProtocol();
         return factory.newConnection();
     }
 
@@ -86,9 +92,9 @@ public class RecvMQ {
      */
     private Channel initChannel(Connection connection) throws IOException {
         Channel channel = connection.createChannel();
-        channel.exchangeDeclare(EXCHANGE_NAME, EXCHANGE_TYPE);
-        channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, "");
-        channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+//        channel.exchangeDeclare(EXCHANGE_NAME, EXCHANGE_TYPE);
+        channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, "#");
+        channel.queueDeclare(QUEUE_NAME, true, false, false, null);
         return channel;
     }
 

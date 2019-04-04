@@ -9,9 +9,9 @@ import java.nio.charset.StandardCharsets;
  */
 public class SendMQ {
 
-    private final static String QUEUE_NAME = "eiffelactory";
-    private final static String EXCHANGE_NAME = "eiffel";
-    private final static String EXCHANGE_TYPE = "fanout";
+    private final static String QUEUE_NAME = "eiffel.public";
+    private final static String EXCHANGE_NAME = "alenah.eiffelactory.dev";
+    private final static String EXCHANGE_TYPE = "topic";
     private Logger rabbitLogger = new Logger();
 
     /**
@@ -27,7 +27,7 @@ public class SendMQ {
             channel.queueDeclare(QUEUE_NAME, false, false, false, null);
             channel.basicPublish(EXCHANGE_NAME, "", null, message.getBytes(StandardCharsets.UTF_8));
 		 } catch (Exception e) {
-            rabbitLogger.writeJavaError(e.toString());
+            rabbitLogger.writeJavaError(e);
         }
 	 }
 }
