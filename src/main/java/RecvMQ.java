@@ -13,10 +13,10 @@ import java.util.concurrent.TimeoutException;
  * Instantiated and used in the groovy script
  */
 public class RecvMQ {
-    // uncommented fields and method call are for real rabbitmq
     private final static String QUEUE_NAME = "alenah.eiffelactory.dev";
     private final static String EXCHANGE_NAME = "eiffel.public";
     private final static String EXCHANGE_TYPE = "topic";
+    private final static boolean QUEUE_DURABLE = true;
     private volatile boolean alive = true;
     private Thread thread;
 
@@ -34,7 +34,7 @@ public class RecvMQ {
                     receiveMessage(consumerTag, delivery);
                     if (!alive) {
                         try {
-//                            channel.queueUnbind(QUEUE_NAME, EXCHANGE_NAME, "#");
+                            channel.queueUnbind(QUEUE_NAME, EXCHANGE_NAME, "#");
                             channel.close();
                             connection.close();
                         } catch (TimeoutException e) {
@@ -79,7 +79,7 @@ public class RecvMQ {
         factory.setVirtualHost(rabbitConfig.getVhost());
         factory.setHost(rabbitConfig.getHostname());
         factory.setPort(rabbitConfig.getPort());
-//        factory.useSslProtocol();
+        factory.useSslProtocol();
         return factory.newConnection();
     }
 
@@ -91,12 +91,38 @@ public class RecvMQ {
      */
     private Channel initChannel(Connection connection) throws IOException {
         Channel channel = connection.createChannel();
-//        channel.exchangeDeclarePassive(EXCHANGE_NAME); // IOException
-//        channel.queueDeclarePassive(QUEUE_NAME);
-        channel.exchangeDeclare(EXCHANGE_NAME, EXCHANGE_TYPE);
-        channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+        declareExchange(channel);
+        declareQueue(channel);
         channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, "#");
         return channel;
+    }
+
+    private void declareExchange(Channel channel) {
+        try {
+            AMQP.Exchange.DeclareOk response = channel.exchangeDeclarePassive(EXCHANGE_NAME);
+        } catch (IOException e) {
+            RabbitLogger.writeJavaError(e);
+            RabbitLogger.writeJavaError("Exchange " + EXCHANGE_NAME + " doesn't exist. Creating new");
+            try {
+                channel.exchangeDeclare(EXCHANGE_NAME, EXCHANGE_TYPE);
+            } catch (IOException e1) {
+                RabbitLogger.writeJavaError(e1);
+            }
+        }
+    }
+
+    private void declareQueue(Channel channel) {
+        try {
+            AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(QUEUE_NAME);
+        } catch (IOException e) {
+            RabbitLogger.writeJavaError(e);
+            RabbitLogger.writeJavaError("Queue " + QUEUE_NAME + " doesn't exist. Creating new");
+            try {
+                channel.queueDeclare(QUEUE_NAME, QUEUE_DURABLE, false, false, null);
+            } catch (IOException e1) {
+                RabbitLogger.writeJavaError(e1);
+            }
+        }
     }
 
     /**

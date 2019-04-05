@@ -27,4 +27,9 @@ public class RabbitLogger {
         e.printStackTrace(errorWriter);
         errorWriter.flush();
     }
+
+    public static void writeJavaError(String e) {
+        errorWriter.println(e);
+        errorWriter.flush();
+    }
 }

@@ -42,13 +42,9 @@ public class RabbitConfig {
         return password;
     }
 
-    public String getVhost() {
-        return vhost;
-    }
+    public String getVhost() { return vhost; }
 
-    public String getHostname() {
-        return hostname;
-    }
+    public String getHostname() { return hostname; }
 
     public int getPort() {
         return port;

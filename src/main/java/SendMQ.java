@@ -1,3 +1,4 @@
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -12,10 +13,10 @@ import java.util.concurrent.TimeoutException;
  * Instantiated and used in the groovy script.
  */
 public class SendMQ {
-    // uncommented fields and method call are for real rabbitmq
     private final static String QUEUE_NAME = "alenah.eiffelactory.dev";
     private final static String EXCHANGE_NAME = "eiffel.public";
     private final static String EXCHANGE_TYPE = "topic";
+    private final static boolean QUEUE_DURABLE = true;
     private Connection connection;
     private Channel channel;
 
@@ -34,10 +35,8 @@ public class SendMQ {
 	public void send(String message) {
         try {
             channel = connection.createChannel();
-//            channel.exchangeDeclarePassive(EXCHANGE_NAME)
-//            channel.queueDeclarePassive(QUEUE_NAME);
-            channel.exchangeDeclare(EXCHANGE_NAME, EXCHANGE_TYPE);
-            channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+            declareExchange();
+            declareQueue();
             channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, "#");
             channel.basicPublish(EXCHANGE_NAME, "#", null, message.getBytes(StandardCharsets.UTF_8));
             channel.close();
@@ -45,6 +44,34 @@ public class SendMQ {
             RabbitLogger.writeJavaError(e);
         }
 	 }
+
+    private void declareQueue() {
+        try {
+            AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(QUEUE_NAME);
+        } catch (IOException e) {
+            RabbitLogger.writeJavaError(e);
+            RabbitLogger.writeJavaError("Queue " + QUEUE_NAME + " doesn't exist. Creating new");
+            try {
+                channel.queueDeclare(QUEUE_NAME, QUEUE_DURABLE, false, false, null);
+            } catch (IOException e1) {
+                RabbitLogger.writeJavaError(e1);
+            }
+        }
+    }
+
+    private void declareExchange() {
+         try {
+             AMQP.Exchange.DeclareOk response = channel.exchangeDeclarePassive(EXCHANGE_NAME);
+         } catch (IOException e) {
+             RabbitLogger.writeJavaError(e);
+             RabbitLogger.writeJavaError("Exchange " + EXCHANGE_NAME + " doesn't exist. Creating new");
+             try {
+                 channel.exchangeDeclare(EXCHANGE_NAME, EXCHANGE_TYPE);
+             } catch (IOException e1) {
+                 RabbitLogger.writeJavaError(e1);
+             }
+         }
+     }
 
 	 public void stop() {
          try {
@@ -65,7 +92,7 @@ public class SendMQ {
         factory.setVirtualHost(rabbitConfig.getVhost());
         factory.setHost(rabbitConfig.getHostname());
         factory.setPort(rabbitConfig.getPort());
-//        factory.useSslProtocol();
+        factory.useSslProtocol();
         return factory.newConnection();
     }
 }
