@@ -1,7 +1,4 @@
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.*;
 
 import java.io.IOException;
 import java.security.KeyManagementException;
@@ -28,7 +25,10 @@ public class RabbitConnection {
         factory.setHost(RabbitConfig.getHostname());
         factory.setPort(RabbitConfig.getPort());
         factory.useSslProtocol();
-        return factory.newConnection();
+
+        Connection connection = factory.newConnection();
+        connection.addShutdownListener(new RabbitShutdownListener());
+        return connection;
     }
 
     // TODO: "Consuming in one thread and publishing in another thread on a shared channel can be safe." --> share channel?
@@ -93,4 +93,26 @@ public class RabbitConnection {
         }
     }
 
+    private class RabbitShutdownListener implements ShutdownListener {
+
+        @Override
+        public void shutdownCompleted(ShutdownSignalException cause) {
+            if (cause.isHardError()) { // it's a connection-level error
+                Connection connection = (Connection) cause.getReference();
+                if (!cause.isInitiatedByApplication()) {
+                    Method reason = cause.getReason();
+                    RabbitLogger.writeJavaError(reason.toString());
+                    Throwable thrown = cause.getCause();
+                }
+            } else { // it's a channel-level error
+                Channel channel = (Channel) cause.getReference();
+                if (!cause.isInitiatedByApplication()) {
+                    Method reason = cause.getReason();
+                    RabbitLogger.writeJavaError(reason.toString());
+                    Throwable thrown = cause.getCause();
+                }
+
+            }
+        }
+    }
 }

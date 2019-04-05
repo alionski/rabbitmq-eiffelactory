@@ -12,7 +12,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class RecvMQ {
     private RabbitConnection rabbitConnection = new RabbitConnection();
-    private String conumerTag = "lnxalenah";
+    private String consumerTag = "lnxalenah";
     private volatile boolean alive = true;
     private boolean autoAck = false;
     private Thread receiverThread;
@@ -26,7 +26,7 @@ public class RecvMQ {
             try {
                 Channel channel = rabbitConnection.newChannel();
 
-                channel.basicConsume(RabbitConnection.QUEUE_NAME, autoAck, conumerTag,
+                channel.basicConsume(RabbitConnection.QUEUE_NAME, autoAck, consumerTag,
                     new DefaultConsumer(channel) {
                         @Override
                         public void handleDelivery(String consumerTag,
@@ -34,13 +34,12 @@ public class RecvMQ {
                                                    AMQP.BasicProperties props,
                                                    byte[] body) throws IOException {
 
-                            String routingKey = envelope.getRoutingKey();
-                            String contentType = props.getContentType();
-                            long deliveryTag = envelope.getDeliveryTag();
+                            receiveMessage(props.getContentType(),
+                                    consumerTag,
+                                    body);
 
-                            receiveMessage(contentType, consumerTag, body);
-
-                            channel.basicAck(deliveryTag, false);
+                            channel.basicAck(envelope.getDeliveryTag(),
+                                    false);
 
                             if (!alive) {
                                 shutdown(channel, consumerTag);
