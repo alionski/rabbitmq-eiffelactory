@@ -31,6 +31,7 @@ public class RabbitConnection {
         return factory.newConnection();
     }
 
+    // TODO: "Consuming in one thread and publishing in another thread on a shared channel can be safe." --> share channel?
     public Channel newChannel() {
         try {
             connection = initConnection();
@@ -71,8 +72,8 @@ public class RabbitConnection {
             try {
                 createChannel();
                 channel.queueDeclare(QUEUE_NAME, QUEUE_DURABLE, false, false, null);
-            } catch (IOException e) {
-                RabbitLogger.writeJavaError(e);
+            } catch (IOException e1) {
+                RabbitLogger.writeJavaError(e1);
             }
         } finally {
             try {
