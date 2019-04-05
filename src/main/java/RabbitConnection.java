@@ -37,7 +37,6 @@ public class RabbitConnection {
             createChannel();
             declareExchange();
             declareQueue();
-            channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, ROUTING_KEY);
         } catch (IOException | TimeoutException | KeyManagementException | NoSuchAlgorithmException e) {
             RabbitLogger.writeJavaError(e);
         }
@@ -72,8 +71,14 @@ public class RabbitConnection {
             try {
                 createChannel();
                 channel.queueDeclare(QUEUE_NAME, QUEUE_DURABLE, false, false, null);
-            } catch (IOException e1) {
-                RabbitLogger.writeJavaError(e1);
+            } catch (IOException e) {
+                RabbitLogger.writeJavaError(e);
+            }
+        } finally {
+            try {
+                channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, ROUTING_KEY);
+            } catch (IOException e) {
+                RabbitLogger.writeJavaError(e);
             }
         }
     }
