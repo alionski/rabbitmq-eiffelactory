@@ -32,4 +32,15 @@ public class RabbitLogger {
         errorWriter.println(e);
         errorWriter.flush();
     }
+
+    public static void closeWriters() {
+        if (errorWriter != null) {
+            errorWriter.close();
+            errorWriter = null;
+        }
+        if (logWriter != null) {
+            errorWriter.close();
+            errorWriter = null;
+        }
+    }
 }

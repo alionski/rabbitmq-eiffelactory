@@ -6,10 +6,9 @@ import java.util.Properties;
  * Class that parses configs from the Artifactory host
  */
 public class RabbitConfig {
-    private String username, password, vhost, hostname;
-    private int port;
-
-    public RabbitConfig() {
+    private static String username, password, vhost, hostname, exchange, queue, exchangeType;
+    private static int port;
+    static {
         Properties prop = new Properties();
         FileInputStream config = null;
 
@@ -21,6 +20,9 @@ public class RabbitConfig {
             vhost = prop.getProperty("vhost");
             hostname = prop.getProperty("hostname");
             port = Integer.valueOf(prop.getProperty("port"));
+            exchange = prop.getProperty("exchange");
+            queue = prop.getProperty("queue");
+            exchangeType = prop.getProperty("exchange_type");
         } catch (IOException e) {
             RabbitLogger.writeJavaError(e);
         } finally {
@@ -34,19 +36,19 @@ public class RabbitConfig {
         }
     }
 
-    public String getUsername() {
-        return username;
-    }
+    public static String getExchange() { return exchange; }
 
-    public String getPassword() {
-        return password;
-    }
+    public static String getQueue() { return queue; }
 
-    public String getVhost() { return vhost; }
+    public static String getExchangeType() { return exchangeType; }
 
-    public String getHostname() { return hostname; }
+    public static String getUsername() { return username; }
 
-    public int getPort() {
-        return port;
-    }
+    public static  String getPassword() { return password; }
+
+    public static String getVhost() { return vhost; }
+
+    public static String getHostname() { return hostname; }
+
+    public static int getPort() { return port; }
 }

@@ -13,9 +13,9 @@ import java.util.concurrent.TimeoutException;
  * Instantiated and used in the groovy script.
  */
 public class SendMQ {
-    private final static String QUEUE_NAME = "alenah.eiffelactory.dev";
-    private final static String EXCHANGE_NAME = "eiffel.public";
-    private final static String EXCHANGE_TYPE = "topic";
+    private final static String QUEUE_NAME = RabbitConfig.getQueue();
+    private final static String EXCHANGE_NAME = RabbitConfig.getExchange();
+    private final static String EXCHANGE_TYPE = RabbitConfig.getExchangeType();
     private final static boolean QUEUE_DURABLE = true;
     private Connection connection;
     private Channel channel;
@@ -78,6 +78,7 @@ public class SendMQ {
              connection.close();
          } catch (IOException e) {
              RabbitLogger.writeJavaError(e);
+             RabbitLogger.closeWriters();
          }
      }
 
@@ -85,13 +86,12 @@ public class SendMQ {
             TimeoutException,
             KeyManagementException,
             NoSuchAlgorithmException {
-        RabbitConfig rabbitConfig = new RabbitConfig();
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setUsername(rabbitConfig.getUsername());
-        factory.setPassword(rabbitConfig.getPassword());
-        factory.setVirtualHost(rabbitConfig.getVhost());
-        factory.setHost(rabbitConfig.getHostname());
-        factory.setPort(rabbitConfig.getPort());
+        factory.setUsername(RabbitConfig.getUsername());
+        factory.setPassword(RabbitConfig.getPassword());
+        factory.setVirtualHost(RabbitConfig.getVhost());
+        factory.setHost(RabbitConfig.getHostname());
+        factory.setPort(RabbitConfig.getPort());
         factory.useSslProtocol();
         return factory.newConnection();
     }

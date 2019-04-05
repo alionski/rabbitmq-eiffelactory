@@ -13,9 +13,9 @@ import java.util.concurrent.TimeoutException;
  * Instantiated and used in the groovy script
  */
 public class RecvMQ {
-    private final static String QUEUE_NAME = "alenah.eiffelactory.dev";
-    private final static String EXCHANGE_NAME = "eiffel.public";
-    private final static String EXCHANGE_TYPE = "topic";
+    private final static String QUEUE_NAME = RabbitConfig.getQueue();
+    private final static String EXCHANGE_NAME = RabbitConfig.getExchange();
+    private final static String EXCHANGE_TYPE = RabbitConfig.getExchangeType();
     private final static boolean QUEUE_DURABLE = true;
     private volatile boolean alive = true;
     private Thread thread;
@@ -72,13 +72,12 @@ public class RecvMQ {
                                                 TimeoutException,
                                                 KeyManagementException,
                                                 NoSuchAlgorithmException {
-        RabbitConfig rabbitConfig = new RabbitConfig();
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setUsername(rabbitConfig.getUsername());
-        factory.setPassword(rabbitConfig.getPassword());
-        factory.setVirtualHost(rabbitConfig.getVhost());
-        factory.setHost(rabbitConfig.getHostname());
-        factory.setPort(rabbitConfig.getPort());
+        factory.setUsername(RabbitConfig.getUsername());
+        factory.setPassword(RabbitConfig.getPassword());
+        factory.setVirtualHost(RabbitConfig.getVhost());
+        factory.setHost(RabbitConfig.getHostname());
+        factory.setPort(RabbitConfig.getPort());
         factory.useSslProtocol();
         return factory.newConnection();
     }
@@ -97,6 +96,10 @@ public class RecvMQ {
         return channel;
     }
 
+    /**
+     * Checks if the exchange exists, and if no creates a new one.
+     * @param channel
+     */
     private void declareExchange(Channel channel) {
         try {
             AMQP.Exchange.DeclareOk response = channel.exchangeDeclarePassive(EXCHANGE_NAME);
@@ -111,6 +114,10 @@ public class RecvMQ {
         }
     }
 
+    /**
+     * Checks if the queue exists, and if no creates a new one.
+     * @param channel
+     */
     private void declareQueue(Channel channel) {
         try {
             AMQP.Queue.DeclareOk response = channel.queueDeclarePassive(QUEUE_NAME);
@@ -131,6 +138,7 @@ public class RecvMQ {
      */
     public void stopReceiving() {
         alive = false;
-        thread.interrupt();
+        thread.interrupt(); // doesn't work anyway
+        RabbitLogger.closeWriters();
     }
 }
