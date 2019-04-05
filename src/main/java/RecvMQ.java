@@ -12,7 +12,9 @@ import java.util.concurrent.TimeoutException;
  */
 public class RecvMQ {
     private RabbitConnection rabbitConnection = new RabbitConnection();
+    private String conumerTag = "lnxalenah";
     private volatile boolean alive = true;
+    private boolean autoAck = false;
     private Thread receiverThread;
 
     /**
@@ -24,28 +26,28 @@ public class RecvMQ {
             try {
                 Channel channel = rabbitConnection.newChannel();
 
-                DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                channel.basicConsume(RabbitConnection.QUEUE_NAME, autoAck, conumerTag,
+                    new DefaultConsumer(channel) {
+                        @Override
+                        public void handleDelivery(String consumerTag,
+                                                   Envelope envelope,
+                                                   AMQP.BasicProperties props,
+                                                   byte[] body) throws IOException {
 
-                    receiveMessage(consumerTag, delivery);
+                            String routingKey = envelope.getRoutingKey();
+                            String contentType = props.getContentType();
+                            long deliveryTag = envelope.getDeliveryTag();
 
-                    if (!alive) {
-                        try {
-                            channel.queueUnbind(
-                                    RabbitConnection.QUEUE_NAME,
-                                    RabbitConnection.EXCHANGE_NAME,
-                                    RabbitConnection.ROUTING_KEY);
-                            channel.close();
-                            RabbitLogger.writeRabbitLog("Receiver closing channel...");
-                            rabbitConnection.closeConnection();
-                            RabbitLogger.writeRabbitLog("Receiver closing connection...");
-                            RabbitLogger.closeWriters(); // TODO: move from here later
-                        } catch (TimeoutException e) {
-                            RabbitLogger.writeJavaError(e);
+                            receiveMessage(contentType, consumerTag, body);
+
+                            channel.basicAck(deliveryTag, false);
+
+                            if (!alive) {
+                                shutdown(channel, consumerTag);
+                            }
                         }
                     }
-                };
-                channel.basicConsume(RabbitConnection.QUEUE_NAME, true, deliverCallback, consumerTag -> { });
-
+                );
             } catch (IOException e) {
                 RabbitLogger.writeJavaError(e);
             }
@@ -53,14 +55,34 @@ public class RecvMQ {
         receiverThread.start();
     }
 
+    private void shutdown(Channel channel, String consumerTag) {
+        try {
+            channel.basicCancel(consumerTag);
+            channel.queueUnbind(
+                    RabbitConnection.QUEUE_NAME,
+                    RabbitConnection.EXCHANGE_NAME,
+                    RabbitConnection.ROUTING_KEY);
+            channel.close();
+            RabbitLogger.writeRabbitLog("Receiver closing channel...");
+            rabbitConnection.closeConnection();
+            RabbitLogger.writeRabbitLog("Receiver closing connection...");
+            RabbitLogger.closeWriters(); // TODO: move from here later
+        } catch (TimeoutException | IOException e) {
+            RabbitLogger.writeJavaError(e);
+        }
+    }
+
     /**
      * Writes the Eiffel message to file
      * @param consumerTag
      * @param delivery
      */
-    private void receiveMessage(String consumerTag, Delivery delivery) {
-        String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-        String log = new Timestamp(new Date().getTime()) + " : " + message + "\n";
+    private void receiveMessage(String contentType, String consumerTag, byte[] delivery) {
+        String message = new String(delivery, StandardCharsets.UTF_8);
+        String log = "time : " + new Timestamp(new Date().getTime()) + "\n" +
+                "consumer tag: " + consumerTag + "\n" +
+                "content type : " + contentType + "\n" +
+                "message : " +  message + "\n";
         RabbitLogger.writeRabbitLog(log);
     }
 
