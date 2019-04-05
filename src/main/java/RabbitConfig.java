@@ -9,7 +9,7 @@ public class RabbitConfig {
     private String username, password, vhost, hostname;
     private int port;
 
-    public RabbitConfig(Logger logger) {
+    public RabbitConfig() {
         Properties prop = new Properties();
         FileInputStream config = null;
 
@@ -22,13 +22,13 @@ public class RabbitConfig {
             hostname = prop.getProperty("hostname");
             port = Integer.valueOf(prop.getProperty("port"));
         } catch (IOException e) {
-            logger.writeJavaError(e);
+            RabbitLogger.writeJavaError(e);
         } finally {
             if (config != null) {
                 try {
                     config.close();
                 } catch (IOException e) {
-                    logger.writeJavaError(e);
+                    RabbitLogger.writeJavaError(e);
                 }
             }
         }

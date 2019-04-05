@@ -2,22 +2,11 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
-public class Logger {
-    private PrintWriter errorWriter, logWriter;
-    private String errorsPath = "/tmp/java_errors.log";
-    private String rabbitLogsPath = "/tmp/rabbit_mq.logs";
-
-    // TODO: convert to singleton
-
-    public PrintWriter getErrorWriter() {
-        return errorWriter;
-    }
-
-    public PrintWriter getLogWriter() {
-        return logWriter;
-    }
-
-    public Logger() {
+public class RabbitLogger {
+    private static PrintWriter errorWriter, logWriter;
+    private static String errorsPath = "/tmp/java_errors.log";
+    private static String rabbitLogsPath = "/tmp/rabbitmq.logs";
+    static {
         FileWriter errorFileWriter, logFileWriter;
         try {
             errorFileWriter = new FileWriter(errorsPath,  true);
@@ -29,14 +18,13 @@ public class Logger {
         }
     }
 
-    public void writeRabbitLog(String log) {
+    public static void writeRabbitLog(String log) {
         logWriter.println(log);
-        logWriter.close();
+        logWriter.flush();
     }
 
-    public void writeJavaError(Exception e) {
+    public static void writeJavaError(Exception e) {
         e.printStackTrace(errorWriter);
         errorWriter.flush();
-        errorWriter.close();
     }
 }
