@@ -22,6 +22,7 @@ public class SendMQ {
                             null,
                                 message.getBytes(StandardCharsets.UTF_8));
             channel.close();
+            RabbitLogger.writeRabbitLog("Sender closing channel...");
         } catch (IOException | TimeoutException e) {
             RabbitLogger.writeJavaError(e);
         }
@@ -29,7 +30,6 @@ public class SendMQ {
 
 	 public void stop() {
          rabbitConnection.closeConnection();
+         RabbitLogger.writeRabbitLog("Sender closing connection...");
      }
-
-
 }

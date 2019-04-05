@@ -35,7 +35,10 @@ public class RecvMQ {
                                     RabbitConnection.EXCHANGE_NAME,
                                     RabbitConnection.ROUTING_KEY);
                             channel.close();
+                            RabbitLogger.writeRabbitLog("Receiver closing channel...");
                             rabbitConnection.closeConnection();
+                            RabbitLogger.writeRabbitLog("Receiver closing connection...");
+                            RabbitLogger.closeWriters(); // TODO: move from here later
                         } catch (TimeoutException e) {
                             RabbitLogger.writeJavaError(e);
                         }
@@ -68,6 +71,5 @@ public class RecvMQ {
     public void stopReceiving() {
         alive = false;
         receiverThread.interrupt(); // doesn't work anyway
-        RabbitLogger.closeWriters();
     }
 }

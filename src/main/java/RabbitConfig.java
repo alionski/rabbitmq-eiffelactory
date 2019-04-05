@@ -14,7 +14,8 @@ public class RabbitConfig {
         FileInputStream config = null;
 
         try {
-            config = new FileInputStream("/etc/secrets.properties");
+            String home= System.getenv("ARTIFACTORY_HOME");
+            config = new FileInputStream(home + "/etc/plugins/config/secrets.properties");
             prop.load(config);
             username = prop.getProperty("username");
             password = prop.getProperty("password");

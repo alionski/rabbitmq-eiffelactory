@@ -34,7 +34,7 @@ public class RabbitConnection {
     public Channel newChannel() {
         try {
             connection = initConnection();
-            channel = connection.createChannel();
+            createChannel();
             declareExchange();
             declareQueue();
             channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, ROUTING_KEY);
@@ -44,6 +44,10 @@ public class RabbitConnection {
         return channel;
     }
 
+    public void createChannel() throws IOException {
+        channel = connection.createChannel();
+    }
+
     private void declareExchange() {
         try {
             AMQP.Exchange.DeclareOk response = channel.exchangeDeclarePassive(EXCHANGE_NAME);
@@ -51,6 +55,7 @@ public class RabbitConnection {
             RabbitLogger.writeJavaError(e);
             RabbitLogger.writeJavaError("Exchange " + EXCHANGE_NAME + " doesn't exist. Creating new");
             try {
+                createChannel();
                 channel.exchangeDeclare(EXCHANGE_NAME, EXCHANGE_TYPE);
             } catch (IOException e1) {
                 RabbitLogger.writeJavaError(e1);
@@ -65,6 +70,7 @@ public class RabbitConnection {
             RabbitLogger.writeJavaError(e);
             RabbitLogger.writeJavaError("Queue " + QUEUE_NAME + " doesn't exist. Creating new");
             try {
+                createChannel();
                 channel.queueDeclare(QUEUE_NAME, QUEUE_DURABLE, false, false, null);
             } catch (IOException e1) {
                 RabbitLogger.writeJavaError(e1);
