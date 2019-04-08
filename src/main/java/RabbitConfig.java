@@ -3,10 +3,11 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
- * Class that parses configs from the Artifactory host
+ * Static class that parses configs from the Artifactory host
  */
 public class RabbitConfig {
-    private static String username, password, vhost, hostname, exchange, queue, exchangeType, routingKey;
+    private static String username, password, vhost, hostname, exchange,
+                            queue, exchangeType, routingKey, consumerTag;
     private static int port;
 
     static {
@@ -26,6 +27,7 @@ public class RabbitConfig {
             queue = prop.getProperty("queue");
             exchangeType = prop.getProperty("exchange_type");
             routingKey = prop.getProperty("routing_key");
+            consumerTag = prop.getProperty("consumer_tag");
         } catch (IOException e) {
             RabbitLogger.writeJavaError(e);
         } finally {
@@ -57,4 +59,6 @@ public class RabbitConfig {
 
     public static String getRoutingKey() { return routingKey;
     }
+
+    public static String getConsumerTag() { return consumerTag; }
 }
