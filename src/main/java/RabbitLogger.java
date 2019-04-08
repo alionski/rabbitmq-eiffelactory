@@ -7,16 +7,15 @@ import java.io.PrintWriter;
  */
 public class RabbitLogger {
     private static PrintWriter errorWriter, logWriter, shutdownWriter;
-    private static String errorsPath = "/etc/plugins/logs/lib_java_errors.log";
-    private static String rabbitLogsPath = "/etc/plugins/logs/lib_rabbitmq_received.log";
-    private static String shutdownPath = "/etc/plugins/logs/lib_shutdown_errors.log";
+    private static String errorsPath = "/var/log/eiffelactory/lib_java_errors.log";
+    private static String rabbitLogsPath = "//var/log/eiffelactory/lib_rabbitmq_received.log";
+    private static String shutdownPath = "/var/log/eiffelactory/lib_shutdown_errors.log";
     static {
         FileWriter errorFileWriter, logFileWriter, shutdownFileWriter;
         try {
-            String home= System.getenv("ARTIFACTORY_HOME");
-            errorFileWriter = new FileWriter(home + errorsPath,  true);
-            logFileWriter = new FileWriter (home + rabbitLogsPath,  true);
-            shutdownFileWriter = new FileWriter(home + shutdownPath, true);
+            errorFileWriter = new FileWriter(errorsPath,  true);
+            logFileWriter = new FileWriter (rabbitLogsPath,  true);
+            shutdownFileWriter = new FileWriter(shutdownPath, true);
             errorWriter = new PrintWriter(errorFileWriter);
             logWriter = new PrintWriter(logFileWriter);
             shutdownWriter = new PrintWriter(shutdownFileWriter);
