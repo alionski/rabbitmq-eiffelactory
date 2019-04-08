@@ -13,17 +13,24 @@ public class RecvMQ {
     private String consumerTag = RabbitConfig.getConsumerTag();
     private volatile boolean alive = true;
     private boolean autoAck = false;
+    private ScriptCallback scriptCallback;
 
     /**
      * Called from the groovy script. Receives messages from the Eiffel exchange and
      * writes them to file.
      */
+
+    public RecvMQ(ScriptCallback scriptCallback) {
+        this.scriptCallback = scriptCallback;
+    }
+
     public void startReceiving() {
         try {
             Channel channel = rabbitConnection.getChannel();
 
             channel.basicConsume(RabbitConnection.QUEUE_NAME, autoAck, consumerTag,
                 new DefaultConsumer(channel) {
+
                     @Override
                     public void handleDelivery(String consumerTag,
                                                Envelope envelope,
@@ -76,6 +83,7 @@ public class RecvMQ {
                 "content type : " + contentType + "\n" +
                 "message : " +  message + "\n";
         if (alive) {
+            scriptCallback.deliverEiffelMessage(message);
             RabbitLogger.writeRabbitLog(log);
         }
     }

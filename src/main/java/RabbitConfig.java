@@ -57,8 +57,7 @@ public class RabbitConfig {
 
     public static int getPort() { return port; }
 
-    public static String getRoutingKey() { return routingKey;
-    }
+    public static String getRoutingKey() { return routingKey; }
 
     public static String getConsumerTag() { return consumerTag; }
 }

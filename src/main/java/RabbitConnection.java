@@ -183,7 +183,7 @@ public class RabbitConnection {
             try {
                 channel.close();
                 connection.close();
-                RabbitLogger.writeRabbitLog("Closing connection...");
+                RabbitLogger.writeRabbitLog("Closing connection...\n");
                 RabbitLogger.closeWriters();
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
