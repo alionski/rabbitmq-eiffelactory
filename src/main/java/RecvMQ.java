@@ -1,9 +1,6 @@
 import com.rabbitmq.client.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
-import java.util.Date;
-
 /**
  * Class representing a RabbitMQ client that listens to Eiffel messages.
  * Instantiated and used in the groovy script
@@ -11,6 +8,7 @@ import java.util.Date;
 public class RecvMQ {
     private RabbitConnection rabbitConnection = RabbitConnection.getInstance();
     private String consumerTag = RabbitConfig.getConsumerTag();
+    private DefaultConsumer consumer;
     private volatile boolean alive = true;
     private boolean autoAck = false;
     private ScriptCallback scriptCallback;
@@ -27,27 +25,10 @@ public class RecvMQ {
     public void startReceiving() {
         try {
             Channel channel = rabbitConnection.getChannel();
+            consumer = new EiffelConsumer(channel);
 
             channel.basicConsume(RabbitConnection.QUEUE_NAME, autoAck, consumerTag,
-                new DefaultConsumer(channel) {
-
-                    @Override
-                    public void handleDelivery(String consumerTag,
-                                               Envelope envelope,
-                                               AMQP.BasicProperties props,
-                                               byte[] body) throws IOException {
-                        // it will not receive or ack any messages that arrive during shutdown
-                        if (alive) {
-                            receiveMessage(props.getContentType(),
-                                    consumerTag,
-                                    body);
-
-                            channel.basicAck(envelope.getDeliveryTag(),
-                                    false);
-                        }
-                    }
-                }
-            );
+                consumer);
         } catch (IOException e) {
             RabbitLogger.writeJavaError(e);
         }
@@ -55,17 +36,19 @@ public class RecvMQ {
 
     /**
      * Cancels the consumer and unbinds the queue
-     * @param channel
-     * @param consumerTag
      */
-    private void shutdown(Channel channel, String consumerTag) {
+    private void shutdown() {
         try {
+            Channel channel = rabbitConnection.getChannel();
             RabbitLogger.writeRabbitLog("Cancelling consumer...");
+            // TODO: it times out here often
             channel.basicCancel(consumerTag);
+            RabbitLogger.writeRabbitLog("Cancelled consumer...");
             channel.queueUnbind(
                     RabbitConnection.QUEUE_NAME,
                     RabbitConnection.EXCHANGE_NAME,
                     RabbitConnection.ROUTING_KEY);
+            rabbitConnection.closeChannel(this);
         } catch (IOException e) {
             RabbitLogger.writeJavaError(e);
         }
@@ -78,8 +61,7 @@ public class RecvMQ {
      */
     private void receiveMessage(String contentType, String consumerTag, byte[] delivery) {
         String message = new String(delivery, StandardCharsets.UTF_8);
-        String log = "time : " + new Timestamp(new Date().getTime()) + "\n" +
-                "consumer tag: " + consumerTag + "\n" +
+        String log = "consumer tag : " + consumerTag + "\n" +
                 "content type : " + contentType + "\n" +
                 "message : " +  message + "\n";
         if (alive) {
@@ -94,7 +76,36 @@ public class RecvMQ {
      */
     public void stopReceiving() {
         alive = false;
-        shutdown(rabbitConnection.getChannel(), consumerTag);
-        rabbitConnection.closeChannel(this);
+        shutdown();
+    }
+
+    private class EiffelConsumer extends DefaultConsumer {
+        private Channel channel;
+
+        /**
+         * Constructs a new instance and records its association to the passed-in channel.
+         *
+         * @param channel the channel to which this consumer is attached
+         */
+        public EiffelConsumer(Channel channel) {
+            super(channel);
+            this.channel = channel;
+        }
+
+        @Override
+        public void handleDelivery(String consumerTag,
+                                   Envelope envelope,
+                                   AMQP.BasicProperties props,
+                                   byte[] body) throws IOException {
+            // it will not receive or ack any messages that arrive during shutdown
+            if (alive) {
+                receiveMessage(props.getContentType(),
+                        consumerTag,
+                        body);
+
+                channel.basicAck(envelope.getDeliveryTag(),
+                        false);
+            }
+        }
     }
 }

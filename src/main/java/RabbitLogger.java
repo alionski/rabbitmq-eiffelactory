@@ -1,6 +1,8 @@
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Timestamp;
+import java.util.Date;
 
 /**
  * Static class responsible for logging messages and errors.
@@ -25,26 +27,36 @@ public class RabbitLogger {
     }
 
     public static void writeRabbitLog(String log) {
+        logWriter.println(new Timestamp(new Date().getTime()));
+        logWriter.flush();
         logWriter.println(log);
         logWriter.flush();
     }
 
     public static void writeJavaError(Throwable e) {
+        errorWriter.println(new Timestamp(new Date().getTime()));
+        errorWriter.flush();
         e.printStackTrace(errorWriter);
         errorWriter.flush();
     }
 
     public static void writeJavaError(String e) {
+        errorWriter.println(new Timestamp(new Date().getTime()));
+        errorWriter.flush();
         errorWriter.println(e);
         errorWriter.flush();
     }
 
     public static void writeShutdownError(Throwable e) {
+        shutdownWriter.println(new Timestamp(new Date().getTime()));
+        shutdownWriter.flush();
         e.printStackTrace(shutdownWriter);
         shutdownWriter.flush();
     }
 
     public static void writeShutdownError(String e) {
+        shutdownWriter.println(new Timestamp(new Date().getTime()));
+        shutdownWriter.flush();
         shutdownWriter.println(e);
         shutdownWriter.flush();
     }

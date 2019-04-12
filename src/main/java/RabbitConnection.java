@@ -11,7 +11,7 @@ import java.util.concurrent.TimeoutException;
  * sender and the consumer.
  */
 public class RabbitConnection {
-    private static RabbitConnection rabbit = new RabbitConnection(); //not final because we might need to recreate it
+    private static RabbitConnection rabbit;
     final static String QUEUE_NAME = RabbitConfig.getQueue();
     final static String EXCHANGE_NAME = RabbitConfig.getExchange();
     final static String EXCHANGE_TYPE = RabbitConfig.getExchangeType();
@@ -23,10 +23,31 @@ public class RabbitConnection {
     private boolean senderClosed = false;
     private boolean receiverClosed = false;
 
-    private RabbitConnection() { }
+    private RabbitConnection() {
+        channel = init();
+    }
 
     public static RabbitConnection getInstance() {
+        if (rabbit == null) {
+            rabbit = new RabbitConnection();
+        }
         return rabbit;
+    }
+
+    /**
+     * Creates new connection and channel
+     * @return
+     */
+    public Channel init() {
+        try {
+            connection = initConnection();
+            initChannel();
+            declareExchange();
+            declareQueue();
+        } catch (IOException | TimeoutException | KeyManagementException | NoSuchAlgorithmException e) {
+            RabbitLogger.writeJavaError(e);
+        }
+        return channel;
     }
 
     /**
@@ -48,34 +69,21 @@ public class RabbitConnection {
         factory.setHost(RabbitConfig.getHostname());
         factory.setPort(RabbitConfig.getPort());
         factory.useSslProtocol();
+        factory.setAutomaticRecoveryEnabled(false);
 
         Connection connection = factory.newConnection();
         connection.addShutdownListener(new RabbitShutdownListener());
         return connection;
     }
 
-    /**
-     * Creates new connection and channel
-     * @return
-     */
-    public Channel newChannel() {
-        try {
-            connection = initConnection();
-            createChannel();
-            declareExchange();
-            declareQueue();
-        } catch (IOException | TimeoutException | KeyManagementException | NoSuchAlgorithmException e) {
-            RabbitLogger.writeJavaError(e);
-        }
-        return channel;
-    }
 
     /**
      * Creates a new channel from the given exception
      * @throws IOException
      */
-    public void createChannel() throws IOException {
+    public void initChannel() throws IOException {
         channel = connection.createChannel();
+        RabbitLogger.writeRabbitLog("CHANNEL NUMBER: " + channel.getChannelNumber());
     }
 
     /**
@@ -91,7 +99,7 @@ public class RabbitConnection {
             RabbitLogger.writeJavaError(e);
             RabbitLogger.writeJavaError("Exchange " + EXCHANGE_NAME + " doesn't exist. Creating new");
             try {
-                createChannel();
+                initChannel();
                 channel.exchangeDeclare(EXCHANGE_NAME, EXCHANGE_TYPE);
             } catch (IOException e1) {
                 RabbitLogger.writeJavaError(e1);
@@ -112,7 +120,7 @@ public class RabbitConnection {
             RabbitLogger.writeJavaError(e);
             RabbitLogger.writeJavaError("Queue " + QUEUE_NAME + " doesn't exist. Creating new");
             try {
-                createChannel();
+                initChannel();
                 channel.queueDeclare(QUEUE_NAME, QUEUE_DURABLE, false, false, null);
             } catch (IOException e1) {
                 RabbitLogger.writeJavaError(e1);
@@ -131,11 +139,7 @@ public class RabbitConnection {
      * @return
      */
     public Channel getChannel() {
-        if (channel == null || !channel.isOpen()) {
-            return newChannel();
-        } else {
-            return channel;
-        }
+        return channel;
     }
 
     /**
@@ -153,6 +157,8 @@ public class RabbitConnection {
                     Throwable thrown = cause.getCause();
                     RabbitLogger.writeShutdownError(thrown);
                     RabbitLogger.closeShutdownWriter();
+                    // recreate it all
+                    init();
                 }
             } else if (!cause.isHardError()) { // it's a channel-level error
                 if (!cause.isInitiatedByApplication()) { // log only if channel closed by server
@@ -161,6 +167,11 @@ public class RabbitConnection {
                     Throwable thrown = cause.getCause();
                     RabbitLogger.writeShutdownError(thrown);
                     RabbitLogger.closeShutdownWriter();
+                    try {
+                        initChannel();
+                    } catch (IOException e) {
+                        RabbitLogger.writeJavaError(e);
+                    }
                 }
             }
         }
@@ -181,9 +192,10 @@ public class RabbitConnection {
 
         if (receiverClosed && senderClosed) {
             try {
+                RabbitLogger.writeRabbitLog("Closing channel...\n");
                 channel.close();
-                connection.close();
                 RabbitLogger.writeRabbitLog("Closing connection...\n");
+                connection.close();
                 RabbitLogger.closeWriters();
             } catch (IOException | TimeoutException e) {
                 e.printStackTrace();
